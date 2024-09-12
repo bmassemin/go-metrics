@@ -37,7 +37,7 @@ type Sample interface {
 type ExpDecaySample struct {
 	alpha         float64
 	count         int64
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 	reservoirSize int
 	t0, t1        time.Time
 	values        *expDecaySampleHeap
@@ -72,8 +72,8 @@ func (s *ExpDecaySample) Clear() {
 // Count returns the number of samples recorded, which may exceed the
 // reservoir size.
 func (s *ExpDecaySample) Count() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.count
 }
 
@@ -107,15 +107,15 @@ func (s *ExpDecaySample) Percentiles(ps []float64) []float64 {
 
 // Size returns the size of the sample, which is at most the reservoir size.
 func (s *ExpDecaySample) Size() int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.values.Size()
 }
 
 // Snapshot returns a read-only copy of the sample.
 func (s *ExpDecaySample) Snapshot() Sample {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	vals := s.values.Values()
 	values := make([]int64, len(vals))
 	for i, v := range vals {
@@ -144,8 +144,8 @@ func (s *ExpDecaySample) Update(v int64) {
 
 // Values returns a copy of the values in the sample.
 func (s *ExpDecaySample) Values() []int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	vals := s.values.Values()
 	values := make([]int64, len(vals))
 	for i, v := range vals {
